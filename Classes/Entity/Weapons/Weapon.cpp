@@ -1,10 +1,4 @@
-#define LOCAL
-
-#ifdef LOCAL
-#include "Weapon.h"
-#else
-#include "Entity\Weapon\Weapon.h"
-#endif
+#include "Entity\Weapons\Weapon.h"
 
 Weapon::Weapon()
 {
@@ -17,9 +11,34 @@ bool Weapon::init()
 	return true;
 }
 
-void Weapon::attack()
+void Weapon::attack(Point pos)
 {
 
+}
+
+std::vector<Bullet*> Weapon::getBullet() const
+{
+	return std::vector<Bullet*>();
+}
+
+int Weapon::getPowerCost()const
+{
+	return m_power_cost;
+}
+
+int Weapon::getRange()const
+{
+	return m_range;
+}
+
+void Weapon::bindMap(AdventureMapLayer* map)
+{
+	m_map = map;
+}
+
+void Weapon::setCritRate(float crit_rate)
+{
+	m_crit_rate = crit_rate;
 }
 
 Weapon::~Weapon()

@@ -3,6 +3,8 @@
 
 #include "cocos2d.h"
 #include "Entity\Entity.h"
+#include "Scene\AdventureMapScene.h"
+#include <Entity\Weapons\Bullets\Bullet.h>
 USING_NS_CC;
 
 class Weapon :public Entity
@@ -12,9 +14,17 @@ public:
 	~Weapon();
 	CREATE_FUNC(Weapon);
 	virtual bool init();
-	virtual void attack();
+public:
+	virtual void attack(Point pos);
+	virtual std::vector<Bullet*> getBullet() const;
+	int getPowerCost()const;
+	int getRange()const;
+	void bindMap(AdventureMapLayer* map);
+	void setCritRate(float crit_rate);
 protected:
 	int m_power_cost;
 	int m_range;
+	float m_crit_rate;
+	AdventureMapLayer* m_map;
 };
 #endif

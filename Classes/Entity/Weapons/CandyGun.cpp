@@ -10,10 +10,13 @@ bool CandyGun::init()
 	m_power_cost = 5;
 	m_bullet_num = 100;
 	m_range = 100;
+	m_bullet_damage = 25;
 	m_bullet_speed = 500;
-	m_bullet_per_sec = 2;
-	m_bullet_picture = String("CandyBullet.png");
-	bindSprite(Sprite::create("CandyGun!.png"), 0.6f, 0.6f);
+	m_attack_speed = 0.2f;
+	m_crit_rate = 0.3f;
+	m_bullet_picture = std::string("CandyBullet.png");
+	bindSprite(Sprite::create("CandyGun!.png"), 0.25f, 0.25f);
+	m_sprite->setAnchorPoint(Vec2(0.0f, 0.5f));
 	return true;
 }
 
