@@ -42,7 +42,7 @@ bool HomeMenuLayer::init()
 	MenuItemImage* closeItem = MenuItemImage::create("menu/CloseNormal.png", "menu/CloseSelected.png", CC_CALLBACK_1(HomeMenuLayer::menuItemCloseCallback, this));
 	closeItem->setPosition(Vec2(origin.x + visibleSize.width / 2 + 200, origin.y + visibleSize.height / 2 - 200));
 
-	Menu* menu = Menu::create(settingItem,startItem,closeItem,nullptr);
+	Menu* menu = Menu::create(settingItem, startItem, closeItem, nullptr);
 
 	menu->setPosition(Vec2::ZERO);
 	this->addChild(menu);
@@ -59,7 +59,7 @@ void HomeMenuLayer::menuItemStartCallback(cocos2d::Ref* pSender)
 void HomeMenuLayer::menuItemSettingCallback(cocos2d::Ref* pSender)
 {
 	auto scene = SettingLayer::createScene();
-	Director::getInstance()->replaceScene(scene);
+	Director::getInstance()->pushScene(scene);
 }
 
 void HomeMenuLayer::menuItemCloseCallback(cocos2d::Ref* pSender)

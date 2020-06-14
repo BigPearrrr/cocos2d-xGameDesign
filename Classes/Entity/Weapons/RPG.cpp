@@ -1,4 +1,4 @@
-#include "Entity\Weapons\RPG.h"
+﻿#include "Entity\Weapons\RPG.h"
 
 #define PI 3.1415926
 
@@ -12,17 +12,40 @@ bool RPG::init()
 	m_power_cost = 5;
 	m_bullet_num = 30;
 	m_range = 250;
-	m_bullet_damage = 10;
+	m_bullet_damage = 5;
 	m_bullet_speed = 300;
 	m_attack_speed = 0.3f;
-	m_explosion_damage = 30;
+	m_explosion_damage = 2;
 	m_explosion_range = 30;
 	m_crit_rate = 0.0f;
 	m_bullet_picture = std::string("RPG.png");
+	m_weaponName = "Fist_of_Heaven";
 	bindSprite(Sprite::create("Fist_of_Heaven.png"), 0.15f, 0.15f);
 	m_sprite->setAnchorPoint(Vec2(0.0f, 0.5f));
 	scheduleUpdate();
 	return true;
+}
+
+void RPG::upgrade()
+{
+	m_power_cost = 4;
+	m_bullet_damage = 5;
+	m_bullet_speed = 350;
+	m_attack_speed = 0.25f;
+	m_explosion_damage = 3;
+	m_explosion_range = 40;
+	m_crit_rate = 0.0f;
+	auto upgrade_effect = ParticleFlower::create();
+	upgrade_effect->setEmitterMode(ParticleSystem::Mode::RADIUS);
+	upgrade_effect->setPositionType(ParticleSystem::PositionType::RELATIVE);
+	upgrade_effect->setAutoRemoveOnFinish(true);
+	upgrade_effect->setTotalParticles(100);
+	upgrade_effect->setPosition(getSprite()->getContentSize().width / 2, getSprite()->getContentSize().height / 2);
+	upgrade_effect->setDuration(-1);
+	upgrade_effect->setStartRadius(50.0f);
+	upgrade_effect->setStartRadiusVar(25.0f);
+	upgrade_effect->setEndRadius(50.0f);
+	getSprite()->addChild(upgrade_effect);
 }
 
 void RPG::attack(Point pos)
@@ -32,8 +55,8 @@ void RPG::attack(Point pos)
 		return;
 	}
 	m_is_attack = true;
-	Point weapon_pos = m_sprite->getPosition();
-	Point now = this->convertToWorldSpace(weapon_pos);
+	Point weapon_pos = getPosition();
+	Point now = getParent()->convertToWorldSpace(weapon_pos);
 	float degree;
 	float dx = pos.x - now.x;
 	float dy = pos.y - now.y;

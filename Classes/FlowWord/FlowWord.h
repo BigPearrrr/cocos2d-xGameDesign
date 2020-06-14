@@ -4,12 +4,13 @@
 #include "cocos2d.h"
 USING_NS_CC;
 
-class FlowWord: public Node
+class FlowWord : public Node
 {
 public:
 	CREATE_FUNC(FlowWord);
 	virtual bool init();
 	void showWord(const char* text, Point pos);
+	void showShopWord(const char* text);
 	void showMonsDmg(const char* text, float ySize);
 	void showCritDmg(const char* text, float ySize);
 	void showMonsTaunted();
