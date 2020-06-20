@@ -1,9 +1,15 @@
-﻿#include "SafeMapScene.h"
-#include "AdventureMapScene.h"
+﻿#include "Scene/SafeMapScene.h"
+#include "Scene/AdventureMapScene.h"
 #include "Scene/TollgateScene.h"
-#include "Scene/PlayerChoose.h"
+#include "SimpleAudioEngine.h"
+#include "extensions\cocos-ext.h"
 #pragma execution_character_set("utf-8")
+
+USING_NS_CC_EXT;
 USING_NS_CC;
+using namespace CocosDenshion;
+
+int SafeMapLayer::m_choose_player = 1;
 
 cocos2d::Scene* SafeMapLayer::createScene()
 {
@@ -28,25 +34,48 @@ bool SafeMapLayer::init()
 
     m_collidable = m_tileMap->getLayer("barrier");//获取判断碰撞的障碍层
 
+    TMXObjectGroup* group = m_tileMap->getObjectGroup("objects");//获取对象层
+    ValueMap spawnPointWeaponInfo = group->getObject("weaponInfo");
+    ValueMap spawnPointMonsterInfo = group->getObject("monsterInfo");
+
+    float x = spawnPointWeaponInfo["x"].asFloat();
+    float y = spawnPointWeaponInfo["y"].asFloat();
+
+    m_weaponInfo = Sprite::create("weaponInfo.png");
+    m_weaponInfo->setPosition(Vec2(x, y));
+    m_tileMap->addChild(m_weaponInfo);
+
+    x = spawnPointMonsterInfo["x"].asFloat();
+    y = spawnPointMonsterInfo["y"].asFloat();
+
+    m_monsterInfo = Sprite::create("monsterInfo.png");
+    m_monsterInfo->setPosition(Vec2(x, y));
+    m_tileMap->addChild(m_monsterInfo);
+
     auto visibleSize = Director::getInstance()->getVisibleSize();
     auto origin = Director::getInstance()->getVisibleOrigin();
-
-    MenuItemFont* text = MenuItemFont::create("选择你的英雄");
-    text->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height - 200));
 
     MenuItemImage* settingItem = MenuItemImage::create("menu/SettingNormal.png", "menu/SettingSelected.png", CC_CALLBACK_1(SafeMapLayer::menuItemSettingCallback, this));
     settingItem->setPosition(Vec2(origin.x + visibleSize.width - 100, origin.y + visibleSize.height - 50));
 
+    Menu* menu1 = Menu::create(settingItem, nullptr);
+
+    menu1->setPosition(Vec2::ZERO);
+    this->addChild(menu1, 0, 10085);//设置菜单
+
+    MenuItemFont* text = MenuItemFont::create("选择你的英雄");
+    text->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height - 200));
+
     MenuItemImage* rangerItem = MenuItemImage::create("ranger_image.png", "ranger_image.png", CC_CALLBACK_1(SafeMapLayer::menuItemRangerCallback, this));
     rangerItem->setPosition(Vec2(origin.x + visibleSize.width / 2 - 200, origin.y + visibleSize.height / 2 - 200));
 
-    MenuItemImage* mageItem = MenuItemImage::create("mage_image.png", "mage_image.png", CC_CALLBACK_1(SafeMapLayer::menuItemMageCallback, this));
+    MenuItemImage* mageItem = MenuItemImage::create("priest_image.jpg", "priest_image.jpg", CC_CALLBACK_1(SafeMapLayer::menuItemPriestCallback, this));
     mageItem->setPosition(Vec2(origin.x + visibleSize.width / 2 + 200, origin.y + visibleSize.height / 2 - 200));
 
-    Menu* menu = Menu::create(text,settingItem, rangerItem, mageItem, nullptr);
+    Menu* menu2 = Menu::create(text, rangerItem, mageItem, nullptr);
 
-    menu->setPosition(Vec2::ZERO);
-    this->addChild(menu, 0, 10086);
+    menu2->setPosition(Vec2::ZERO);
+    this->addChild(menu2, 0, 10086);//选人菜单
 
     return true;
 }
@@ -55,31 +84,62 @@ void SafeMapLayer::onEnter()
 {
     Layer::onEnter();
 
-    auto listener = EventListenerKeyboard::create();//创建监听事件
+    m_listener = EventListenerKeyboard::create();//创建监听事件
 
-    listener->onKeyPressed = [=](EventKeyboard::KeyCode keycode, Event* event)
+    m_listener->onKeyPressed = [=](EventKeyboard::KeyCode keycode, Event* event)
     {
         m_keyMap[keycode] = true;
+        if (keycode == EventKeyboard::KeyCode::KEY_E)
+        {
+            if (ccpDistance(m_player->getPosition(), m_weaponInfo->getPosition()) < 50.0f)//武器图鉴
+            {
+                m_keyMap[EventKeyboard::KeyCode::KEY_W] = false;
+                m_keyMap[EventKeyboard::KeyCode::KEY_A] = false;
+                m_keyMap[EventKeyboard::KeyCode::KEY_S] = false;
+                m_keyMap[EventKeyboard::KeyCode::KEY_D] = false;
+                Size visible_size = Director::getInstance()->getVisibleSize();
+                CCRenderTexture* background = CCRenderTexture::create(visible_size.width, visible_size.height);
+                background->begin();
+                this->visit();
+                background->end();
+                Director::getInstance()->pushScene(WeaponInfoScene::createScene(background));
+            }
+            else if (ccpDistance(m_player->getPosition(), m_monsterInfo->getPosition()) < 50.0f)//怪物图鉴
+            {
+                m_keyMap[EventKeyboard::KeyCode::KEY_W] = false;
+                m_keyMap[EventKeyboard::KeyCode::KEY_A] = false;
+                m_keyMap[EventKeyboard::KeyCode::KEY_S] = false;
+                m_keyMap[EventKeyboard::KeyCode::KEY_D] = false;
+                Size visible_size = Director::getInstance()->getVisibleSize();
+                CCRenderTexture* background = CCRenderTexture::create(visible_size.width, visible_size.height);
+                background->begin();
+                this->visit();
+                background->end();
+                Director::getInstance()->pushScene(MonsterInfoScene::createScene(background));
+            }
+        }
     };
 
-    listener->onKeyReleased = [=](EventKeyboard::KeyCode keycode, Event* event)
+    m_listener->onKeyReleased = [=](EventKeyboard::KeyCode keycode, Event* event)
     {
         m_keyMap[keycode] = false;
     };
 
     EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
-    eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+    eventDispatcher->addEventListenerWithSceneGraphPriority(m_listener, this);
 }
 
 void SafeMapLayer::onEnterTransitionDidFinish()
 {
     Layer::onEnterTransitionDidFinish();
+    SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm/safeBgm.mp3", true);
 }
 
 void SafeMapLayer::onExit()
 {
     Layer::onExit();
-    Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+    this->unschedule(schedule_selector(SafeMapLayer::update));
+    Director::getInstance()->getEventDispatcher()->removeEventListener(m_listener);
 }
 
 void SafeMapLayer::onExitTransitionDidStart()
@@ -90,6 +150,7 @@ void SafeMapLayer::onExitTransitionDidStart()
 void SafeMapLayer::cleanup()
 {
     Layer::cleanup();
+    SimpleAudioEngine::getInstance()->stopBackgroundMusic("bgm/safeBgm.mp3");
 }
 
 void SafeMapLayer::setPlayer(int playerNum)
@@ -99,28 +160,26 @@ void SafeMapLayer::setPlayer(int playerNum)
 
     float x = spawnPoint["x"].asFloat();
     float y = spawnPoint["y"].asFloat();
-
+	auto animation = AnimationUtil::createWithFrameNameAndNumUsingPlist("Ranger/RangerWalk/", "RangerWalk", 4, 0.12, -1);
+	auto animate = Animate::create(animation);
     switch (playerNum)
     {
     case 1:
         m_player = Sprite::create("Ranger/RangerIni.png");
         m_player->setPosition(Vec2(x, y));
-        this->addChild(m_player);//游戏人物
+        m_tileMap->addChild(m_player);//游戏人物
         this->removeChildByTag(10086);
-        m_heroName = "Ranger";
+		m_player->runAction(animate);
         this->scheduleUpdate();
         break;
     case 2:
-        m_player = Sprite::create("mage_image.PNG");
+        m_player = Sprite::create("Priest/PriestIni.PNG");
+		m_player->setScale(0.5);
         m_player->setPosition(Vec2(x, y));
-        this->addChild(m_player);//游戏人物
+        m_tileMap->addChild(m_player);//游戏人物
         this->removeChildByTag(10086);
-        m_heroName = "Mage";
         this->scheduleUpdate();
     }
-    auto animation = AnimationUtil::createWithFrameNameAndNumUsingPlist("Ranger/RangerWalk/", "RangerWalk", 4, 0.12, -1);
-    auto animate = Animate::create(animation);
-    m_player->runAction(animate);
 }
 
 void SafeMapLayer::menuItemSettingCallback(cocos2d::Ref* pSender)
@@ -130,31 +189,33 @@ void SafeMapLayer::menuItemSettingCallback(cocos2d::Ref* pSender)
     background->begin();
     this->visit();
     background->end();
-    Director::getInstance()->pushScene(PauseScene::createScene(background));
+    Director::getInstance()->pushScene(PauseScene::createScene(background, m_choose_player));
 }
 
 void SafeMapLayer::menuItemRangerCallback(cocos2d::Ref* pSender)
 {
+    SafeMapLayer::m_choose_player = 1;
     auto layer = PlayerChoose::create();
     layer->bindMap(this);
     this->addChild(layer, 10000);
 }
 
-void SafeMapLayer::menuItemMageCallback(cocos2d::Ref* pSender)
+void SafeMapLayer::menuItemPriestCallback(cocos2d::Ref* pSender)
 {
+    SafeMapLayer::m_choose_player = 2;
     auto layer = PlayerChoose::create();
     layer->bindMap(this);
-    PlayerInfomation mage = {
+    PlayerInfomation priest = {
         3,
         5,
-        210,
-        "法师",
-        "奥术闪电",
-        "释放强大的闪电\n攻击敌人！！",
-        "mage_image.png",
-        "mage_ability.png"
+        200,
+        "牧师",
+        "恢复法阵",
+        "使用恢复法阵\n恢复生命值",
+        "priest_image.jpg",
+        "priest_ability.jpg"
     };
-    layer->setPlayerInformation(mage);
+    layer->setPlayerInformation(priest);
     this->addChild(layer, 10001);
 }
 
@@ -240,5 +301,5 @@ void SafeMapLayer::setViewpointCenter(cocos2d::Vec2 position)
 
     Vec2 offset = centerPoint - position;//偏移量
 
-    this->setPosition(offset);
+    m_tileMap->setPosition(offset);
 }

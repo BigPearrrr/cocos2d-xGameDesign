@@ -14,7 +14,7 @@ bool Weapon::init()
 	}
 	m_power_cost = 0;
 	m_range = 0;
-	m_attack_speed = 0.6f; 
+	m_attack_speed = 0.6f;
 	return true;
 }
 
@@ -53,9 +53,24 @@ float Weapon::getAttackSpeed()const
 	return m_attack_speed;
 }
 
+void Weapon::setAttackSpeed(float speed)
+{
+	m_attack_speed = speed;
+}
+
 void Weapon::resetPosition()
 {
 	getSprite()->setRotation(0.0f);
+}
+
+void Weapon::setDamage(int damage)
+{
+
+}
+
+int Weapon::getDamage()const
+{
+	return 0;
 }
 
 void Weapon::setRotationByPos(Point pos)
@@ -81,4 +96,10 @@ bool Weapon::isCloseWeapon()const
 Weapon::~Weapon()
 {
 
+}
+
+void Weapon::disappear()
+{
+	m_sprite->setVisible(false);
+	m_is_used = true;
 }

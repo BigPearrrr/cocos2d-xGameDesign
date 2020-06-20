@@ -1,4 +1,5 @@
 #include "Controller/Move/PlayerController.h"
+#include "Entity/Weapons/CloseWeapon.h"
 
 bool PlayerController::init()
 {
@@ -12,6 +13,12 @@ void PlayerController::onEnter()
 {
 	Node::onEnter();
 	registeControllerEvent();
+}
+
+void PlayerController::onExit()
+{
+	Node::onExit();
+	_eventDispatcher->removeEventListener(m_listener);
 }
 
 void PlayerController::update(float dt)
@@ -45,7 +52,7 @@ void PlayerController::registeControllerEvent()
 	keyListener->onKeyReleased = CC_CALLBACK_2(PlayerController::onKeyReleased, this);
 	//键盘按键被弹回时响应
 	dispatcher->addEventListenerWithSceneGraphPriority(keyListener, this);
-
+	m_listener = keyListener;
 }
 
 void PlayerController::animateOperate()
@@ -133,27 +140,23 @@ void PlayerController::onKeyPressed(EventKeyboard::KeyCode keycode, Event* event
 	{
 		//CCLOG("按W：上方向键");
 		this->setiYSpeed(4);
-		//m_player->resetWeaponPosition(m_player->getLeftSide());
 	}
 	else if (keycode == EventKeyboard::KeyCode::KEY_A)
 	{
 		//CCLOG("按A：左方向键");
 		this->setiXSpeed(-4);
 		m_player->setRightToward();
-		//m_player->resetWeaponPosition(true);
 	}
 	else if (keycode == EventKeyboard::KeyCode::KEY_D)
 	{
 		//CCLOG("按D：右方向键");
 		this->setiXSpeed(4);
 		m_player->setLeftToward();
-		//m_player->resetWeaponPosition(false);
 	}
 	else if (keycode == EventKeyboard::KeyCode::KEY_S)
 	{
 		//CCLOG("按S：下方向键");
 		this->setiYSpeed(-4);
-		//m_player->resetWeaponPosition(m_player->getLeftSide());
 	}
 	else if (keycode == EventKeyboard::KeyCode::KEY_SPACE)
 	{
@@ -201,9 +204,12 @@ void PlayerController::playerOperate()const
 {
 	m_player->setiNowCD((m_player->getiNowCD() + 1));
     m_player->setArmorCd();
+	if (m_player->getiNowHp() == 0)
+		m_player->die();
 	if (m_player->getIsInSkill())
 	{
 		m_player->setiNowSkillDuration(m_player->getiNowSkillDuration() + 1);
+		m_player->skillDuration();
 		if (m_player->getiNowSkillDuration() == m_player->getiTotalSkillDuration())
 			m_player->skillEnd();
 	}

@@ -30,7 +30,7 @@ bool AdventureMapLayer::init()
 	createRandomMap();
 
 	m_miniMap = TMXTiledMap::create("map/miniMap.tmx");
-	this->addChild(m_miniMap, 0, 300);
+	//this->addChild(m_miniMap, 0, 300);
 
 	this->scheduleUpdate();
 	//loadMonsters();
@@ -75,6 +75,11 @@ bool AdventureMapLayer::isBarrier(Vec2 position)
 bool AdventureMapLayer::isMonsterRoom(Vec2 roomCoord)
 {
 	return m_rooms[roomCoord] == ENEMY;
+}
+
+bool AdventureMapLayer::isBossRoom(Vec2 roomCoord)
+{
+	return m_rooms[roomCoord] == END && GameData::getLevel() == 2;
 }
 
 void AdventureMapLayer::update(float dt)

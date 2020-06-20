@@ -112,6 +112,11 @@ int LongRange::getDamage()const
 	return m_bullet_damage;
 }
 
+void LongRange::setDamage(int damage)
+{
+	m_bullet_damage = damage;
+}
+
 void LongRange::update(float dt)
 {
 	//for (auto bullet : m_bullet)

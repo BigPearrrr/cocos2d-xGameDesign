@@ -1,4 +1,4 @@
-﻿#ifndef __CloseWeapon_H__
+#ifndef __CloseWeapon_H__
 #define __CloseWeapon_H__
 
 #include "Entity\Weapons\Weapon.h"
@@ -18,6 +18,7 @@ public:
 	virtual void flipped(bool status);
 	virtual bool isCloseWeapon()const override;
 	int getDamage()const;
+	void setDamage(int damage);
 	void setIsHit(bool status);
 	bool isHit()const;
 protected:
