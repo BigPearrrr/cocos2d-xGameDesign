@@ -44,11 +44,13 @@ void TollgateScene::addPlayer()
 	ValueMap spawnPoint = group->getObject("hero");
 	float x = spawnPoint["x"].asFloat();
 	float y = spawnPoint["y"].asFloat();
-	/*if(SafeMapLayer::whichPlayer()==1)
+	
+	if(SafeMapLayer::whichPlayer()==1)
 	    m_player = Ranger::create();
 	else if(SafeMapLayer::whichPlayer() == 2)
-		m_player = Priest::create();*/
-	m_player = Knight::create();
+		m_player = Priest::create();
+	else
+		m_player = Knight::create();
 	m_player->setPosition(Vec2(x, y));
 
 	m_player->setTiledMap(m_map);
@@ -153,7 +155,11 @@ void TollgateScene::onEnter()
 void TollgateScene::onEnterTransitionDidFinish()
 {
 	Layer::onEnterTransitionDidFinish();
-	SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm/advBgm.mp3", true);
+	if (GameData::getBgmNum() == 1)
+	{
+		SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm/advBgm.mp3", true);
+		GameData::setBgmNum(ADVMAP);
+	}
 }
 
 void TollgateScene::onExit()
@@ -171,7 +177,6 @@ void TollgateScene::onExitTransitionDidStart()
 void TollgateScene::cleanup()
 {
 	Layer::cleanup();
-	SimpleAudioEngine::getInstance()->stopBackgroundMusic("bgm/advBgm.mp3");
 }
 
 void TollgateScene::loadUI()
@@ -753,9 +758,19 @@ void TollgateScene::update(float dt)
 					{
 						damage *= 2;
 						monster->hit(damage * m_player->getDamageBonus(), 0.0f, 1);
+						if (typeid(*m_player) == typeid(Knight) && dynamic_cast<Knight*>(m_player)->getIsInSkill())
+						{
+							monster->hit(damage * m_player->getDamageBonus(), 0.0f, 1);
+						}
 					}
 					else
+					{
 						monster->hit(damage * m_player->getDamageBonus(), 0.0f, 0);
+						if (typeid(*m_player) == typeid(Knight) && dynamic_cast<Knight*>(m_player)->getIsInSkill())
+						{
+							monster->hit(damage * m_player->getDamageBonus(), 0.0f, 0);
+						}
+					}
 				}
 			}
 			weapon->setIsHit(true);
@@ -807,9 +822,9 @@ void TollgateScene::update(float dt)
 						{
 							m_player->hit(close_weapon->getDamage());
 						}
+						close_weapon->setIsHit(true);
 					}
 				}
-				close_weapon->setIsHit(true);
 			}
 		}
 	}
