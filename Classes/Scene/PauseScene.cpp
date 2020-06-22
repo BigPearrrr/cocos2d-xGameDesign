@@ -2,6 +2,13 @@
 #include "Scene\HomeScene.h"
 #include "Scene\SettingScene.h"
 #include "GameData.h"
+#include "Scene/TollgateScene.h"
+
+#define RANGER 1
+#define PRIEST 2
+#define KNIGHT 3
+
+extern restrorePlayer restore;
 
 bool PauseScene::init()
 {
@@ -35,9 +42,9 @@ void PauseScene::backToHomeMenu(Ref*, TouchEventType type)
 	{
 	case TOUCH_EVENT_ENDED:
 		Director::getInstance()->popScene();
-		GameData::setCoinNum(0);
 		GameData::setLastRoomCoord(Vec2(2, 2));
 		GameData::setLevel(1);
+		restore.num = 1;
 		Director::getInstance()->replaceScene(HomeMenuLayer::createScene());
 		break;
 	}
@@ -78,9 +85,17 @@ void PauseScene::loadUI()
 	setting_button->addTouchEventListener(this, toucheventselector(PauseScene::goToSettingMenu));
 	auto player_image = (ImageView*)Helper::seekWidgetByName(UI, "player_image");
 
-	if (m_player == 2)
+	switch (m_player)
 	{
-		player_image->loadTexture("priest_image.jpg");
+	case RANGER:
+		player_image->loadTexture("ranger_image.png");
+		break;
+	case PRIEST:
+		player_image->loadTexture("priest_iamge.jpg");
+		break;
+	case KNIGHT:
+		player_image->loadTexture("knight_image.png");
+		break;
 	}
 }
 

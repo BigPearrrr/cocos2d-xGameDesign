@@ -4,6 +4,7 @@
 #include "Scene/PauseScene.h"
 #include "Scene/HomeScene.h"
 #include "Entity/Item/Player/Priest/Priest.h"
+#include "Entity/Item/Player/Knight/Knight.h"
 #include "Entity/Weapons/Bullets/ExplosiveBullet.h"
 #include "Entity/Weapons/RPG.h"
 #include "Entity\Weapons\GoldenSword.h"
@@ -11,6 +12,7 @@
 #include "GameData.h"
 #include "Scene/DeathScene.h"
 #include "SimpleAudioEngine.h"
+#include "Scene/FinishScene.h"
 #pragma execution_character_set("utf-8")
 
 USING_NS_CC;
@@ -42,10 +44,13 @@ void TollgateScene::addPlayer()
 	ValueMap spawnPoint = group->getObject("hero");
 	float x = spawnPoint["x"].asFloat();
 	float y = spawnPoint["y"].asFloat();
+	
 	if(SafeMapLayer::whichPlayer()==1)
 	    m_player = Ranger::create();
 	else if(SafeMapLayer::whichPlayer() == 2)
 		m_player = Priest::create();
+	else
+		m_player = Knight::create();
 	m_player->setPosition(Vec2(x, y));
 
 	m_player->setTiledMap(m_map);
@@ -150,13 +155,18 @@ void TollgateScene::onEnter()
 void TollgateScene::onEnterTransitionDidFinish()
 {
 	Layer::onEnterTransitionDidFinish();
-	SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm/advBgm.mp3", true);
+	if (GameData::getBgmNum() == 1)
+	{
+		SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm/advBgm.mp3", true);
+		GameData::setBgmNum(ADVMAP);
+	}
 }
 
 void TollgateScene::onExit()
 {
 	Layer::onExit();
 	Director::getInstance()->getEventDispatcher()->removeEventListener(m_keyboard_listener);
+	this->unscheduleUpdate();
 	this->removeChildByTag(0);
 }
 
@@ -167,7 +177,6 @@ void TollgateScene::onExitTransitionDidStart()
 void TollgateScene::cleanup()
 {
 	Layer::cleanup();
-	SimpleAudioEngine::getInstance()->stopBackgroundMusic("bgm/advBgm.mp3");
 }
 
 void TollgateScene::loadUI()
@@ -187,11 +196,8 @@ void TollgateScene::loadUI()
 	m_weapon_button = (Button*)Helper::seekWidgetByName(UI, "weapon_button");
 	m_weapon_button->addTouchEventListener(this, toucheventselector(TollgateScene::switchWeapon));
 	m_boss_name = (Text*)Helper::seekWidgetByName(UI, "boss_name");
-	m_boss_hp_bg = (LoadingBar*)Helper::seekWidgetByName(UI, "boss_hp_bar");
+	m_boss_hp_bg = (LoadingBar*)Helper::seekWidgetByName(UI, "boss_hp_bg");
 	m_boss_hp = (LoadingBar*)Helper::seekWidgetByName(UI, "boss_hp");
-	m_boss_name->setVisible(false);
-	//m_boss_hp_bg->setVisible(false);
-	m_boss_hp->setVisible(false);
 	auto pause_button = (Button*)Helper::seekWidgetByName(UI, "pause_button");
 	pause_button->addTouchEventListener(this, toucheventselector(TollgateScene::pauseEvent));
 }
@@ -201,6 +207,7 @@ void TollgateScene::pauseEvent(Ref*, TouchEventType type)
 	switch (type)
 	{
 	case TOUCH_EVENT_ENDED:
+		this->unscheduleUpdate();
 		Size visible_size = Director::getInstance()->getVisibleSize();
 		CCRenderTexture* background = CCRenderTexture::create(visible_size.width, visible_size.height);
 		background->begin();
@@ -239,6 +246,8 @@ void TollgateScene::loadMonstersInNewRoom()
 		m_monsterMgr->setInited();
 		return;
 	}
+	m_monsterMgr->createOneMoreMons();//梯度
+	m_monsterMgr->createOneMoreMons();
 	m_monsterMgr->reviveAllMonsters();
 }
 
@@ -276,9 +285,6 @@ void TollgateScene::loadBoss()
 		m_monsterMgr->createBoss();
 		m_monsterMgr->createWoodWalls();
 		m_monsterMgr->setInited();
-		m_boss_name->setVisible(true);
-		//m_boss_hp_bg->setVisible(true);
-		m_boss_hp->setVisible(true);
 		return;
 	}
 	m_monsterMgr->createBoss();
@@ -392,8 +398,14 @@ void TollgateScene::loadListeners()
 				else//结束冒险
 				{
 					GameData::setLastRoomCoord(Vec2(2, 2));
-					auto scene = HomeMenuLayer::createScene();
-					Director::getInstance()->replaceScene(scene);
+					this->unscheduleUpdate();
+					Size visible_size = Director::getInstance()->getVisibleSize();
+					CCRenderTexture* background = CCRenderTexture::create(visible_size.width, visible_size.height);
+					background->begin();
+					this->visit();
+					background->end();
+					restore.num = 1;
+					Director::getInstance()->pushScene(FinishScene::createScene(background, m_player->whichPlayer()));
 				}
 			}
 			for (auto redMedicine : m_map->getRedMedicineList())
@@ -473,6 +485,7 @@ void TollgateScene::loadListeners()
 			}
 			break;
 		case EventKeyboard::KeyCode::KEY_ESCAPE:
+			this->unscheduleUpdate();
 			Size visible_size = Director::getInstance()->getVisibleSize();
 			CCRenderTexture* background = CCRenderTexture::create(visible_size.width, visible_size.height);
 			background->begin();
@@ -538,8 +551,9 @@ void TollgateScene::compare(float dt)
 		CCDictionary* pDictionary = (CCDictionary*)CCDictionary::createWithContentsOfFile("ChineseCharacters.plist");
 		auto str = pDictionary->valueForKey("WoodWallCheat")->getCString();
 		m_flowWord->showShopWord(str);
+		this->unschedule(schedule_selector(TollgateScene::compare));
 	}
-	if (strcmp(m_editBox->getText(), "infinitypower") == 0)
+	if (strcmp(m_editBox->getText(), "magic") == 0)
 	{
 		m_player->setiNowMp(m_player->getiTotalMp());
 		m_flowWord->showShopWord("无尽的魔力！");
@@ -547,14 +561,13 @@ void TollgateScene::compare(float dt)
 	}
 	if (strcmp(m_editBox->getText(), "rcwtql") == 0)
 	{
-		m_player->setInvincible(15.0f);
-		m_flowWord->showShopWord("rcwtql!");
+		m_player->setInvincible(30.0f);
 		this->unschedule(schedule_selector(TollgateScene::compare));
 	}
-	if (strcmp(m_editBox->getText(), "sildenafil") == 0)
+	if (strcmp(m_editBox->getText(), "power") == 0)
 	{
 		m_player->setDamageBonus(10, 15.0f);
-
+		m_flowWord->showShopWord("力量！！");
 		this->unschedule(schedule_selector(TollgateScene::compare));
 	}
 }
@@ -563,22 +576,6 @@ int i = 0;
 
 void TollgateScene::update(float dt)
 {
-	(m_cdBar)->setPercent(m_player->getiNowCD() /
-		static_cast<float>(m_player->getiTotalCD()) * 100);
-	(m_armorBar)->setPercent(m_player->getiNowArmor() /
-		static_cast<float>(m_player->getiTotalArmor()) * 100);
-	(m_hpBar)->setPercent(m_player->getiNowHp() /
-		static_cast<float>(m_player->getiTotalHp()) * 100);
-	(m_mpBar)->setPercent(m_player->getiNowMp() /
-		static_cast<float>(m_player->getiTotalMp()) * 100);
-	m_weapon_image->loadTexture(m_player->getWeaponFileName());
-	m_mp_cost->setText(std::to_string(m_player->getWeaponPowerCost()));
-	m_boss_hp->setPercent(m_monsterMgr->getMonsterHpRate());
-
-	m_hp->setText(std::to_string(m_player->getiNowHp()) + "/" + std::to_string(m_player->getiTotalHp()));
-	m_armor->setText(std::to_string(m_player->getiNowArmor()) + "/" + std::to_string(m_player->getiTotalArmor()));
-	m_mp->setText(std::to_string(m_player->getiNowMp()) + "/" + std::to_string(m_player->getiTotalMp()));
-	m_coin->setText(std::to_string(GameData::getCoinNum()));
 	auto playerPos = m_player->getPosition();
 	auto barrier = m_map->getCollidable();
 	auto map = m_map->getMap();
@@ -589,6 +586,37 @@ void TollgateScene::update(float dt)
 
 	auto roomCoord = m_map->roomCoordFromPosition(playerPos);
 	auto roomNum = roomCoord.x * 5 + roomCoord.y;
+	
+	(m_cdBar)->setPercent(m_player->getiNowCD() /
+		static_cast<float>(m_player->getiTotalCD()) * 100);
+	(m_armorBar)->setPercent(m_player->getiNowArmor() /
+		static_cast<float>(m_player->getiTotalArmor()) * 100);
+	(m_hpBar)->setPercent(m_player->getiNowHp() /
+		static_cast<float>(m_player->getiTotalHp()) * 100);
+	(m_mpBar)->setPercent(m_player->getiNowMp() /
+		static_cast<float>(m_player->getiTotalMp()) * 100);
+	m_weapon_image->loadTexture(m_player->getWeaponFileName());
+	m_mp_cost->setText(std::to_string(m_player->getWeaponPowerCost()));
+	if (!m_map->isBossRoom(roomCoord))
+	
+	{
+		m_boss_name->setVisible(false);
+		m_boss_hp_bg->setVisible(false);
+		m_boss_hp->setVisible(false);
+	}
+	else
+	{
+		m_boss_name->setVisible(true);
+		m_boss_hp_bg->setVisible(true);
+		m_boss_hp->setVisible(true);
+		m_boss_hp->setPercent(m_monsterMgr->getMonsterHpRate());
+	}
+
+	m_hp->setText(std::to_string(m_player->getiNowHp()) + "/" + std::to_string(m_player->getiTotalHp()));
+	m_armor->setText(std::to_string(m_player->getiNowArmor()) + "/" + std::to_string(m_player->getiTotalArmor()));
+	m_mp->setText(std::to_string(m_player->getiNowMp()) + "/" + std::to_string(m_player->getiTotalMp()));
+	m_coin->setText(std::to_string(GameData::getCoinNum()));
+
 
 	if ((m_map->isMonsterRoom(roomCoord) || m_map->isBossRoom(roomCoord))	//首先它得是个怪物房间
 		&& !m_monsterMgr->isRoomVisited(roomCoord))//其次它没有被到访过
@@ -676,6 +704,7 @@ void TollgateScene::update(float dt)
 		}
 		for (auto monster : monsters)
 		{
+			
 			if (monster->isAlive())
 			{
 				if (bullet->isCollideWith(monster))
@@ -730,9 +759,19 @@ void TollgateScene::update(float dt)
 					{
 						damage *= 2;
 						monster->hit(damage * m_player->getDamageBonus(), 0.0f, 1);
+						if (typeid(*m_player) == typeid(Knight) && dynamic_cast<Knight*>(m_player)->getIsInSkill())
+						{
+							monster->hit(damage * m_player->getDamageBonus(), 0.0f, 1);
+						}
 					}
 					else
+					{
 						monster->hit(damage * m_player->getDamageBonus(), 0.0f, 0);
+						if (typeid(*m_player) == typeid(Knight) && dynamic_cast<Knight*>(m_player)->getIsInSkill())
+						{
+							monster->hit(damage * m_player->getDamageBonus(), 0.0f, 0);
+						}
+					}
 				}
 			}
 			weapon->setIsHit(true);
@@ -784,13 +823,12 @@ void TollgateScene::update(float dt)
 						{
 							m_player->hit(close_weapon->getDamage());
 						}
+						close_weapon->setIsHit(true);
 					}
 				}
-				close_weapon->setIsHit(true);
 			}
 		}
 	}
-
 	//小金币和小蓝的自动拾取
 	for (auto coin : m_map->getCoinList())
 	{
@@ -829,6 +867,7 @@ void TollgateScene::update(float dt)
 
 	if (m_player->getIsDeath())
 	{
+		this->unscheduleUpdate();
 		Size visible_size = Director::getInstance()->getVisibleSize();
 		CCRenderTexture* background = CCRenderTexture::create(visible_size.width, visible_size.height);
 		background->begin();
